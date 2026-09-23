@@ -1,69 +1,143 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState } from "react";
+import { useApp } from "@/context/AppContext";
+import { Navbar } from "@/components/Navbar";
+import { ModuleNav } from "@/components/ModuleNav";
+import { StatsTicker } from "@/components/StatsTicker";
+import { MasterGisMap } from "@/components/Map/MasterGisMap";
+import { ProjectDrawer } from "@/components/Map/ProjectDrawer";
+import { ProjectTracker } from "@/components/Modules/ProjectTracker";
+import { CitizenReportsFeed } from "@/components/Modules/CitizenReportsFeed";
+import { CitizenReportingModal } from "@/components/Modules/CitizenReportingModal";
+import { DailyUpdatesView } from "@/components/Modules/DailyUpdatesView";
+import { AnalyticsDashboard } from "@/components/Modules/AnalyticsDashboard";
+import { AiAssistantDrawer } from "@/components/Modules/AiAssistantDrawer";
+import { EmergencyContactsModal } from "@/components/UI/EmergencyContactsModal";
+import { PhoneCall, Building2 } from "lucide-react";
 
 export default function Home() {
+  const { activeTab, setActiveTab, t, language } = useApp();
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
+
+  const renderActiveModule = () => {
+    switch (activeTab) {
+      case "master-gis":
+        return <MasterGisMap />;
+      case "projects":
+        return <ProjectTracker />;
+      case "citizen-reports":
+        return <CitizenReportsFeed />;
+      case "updates":
+        return <DailyUpdatesView />;
+      case "analytics":
+        return <AnalyticsDashboard />;
+      case "ai-assistant":
+        return (
+          <div className="py-6">
+            <AiAssistantDrawer />
+            <MasterGisMap />
+          </div>
+        );
+      default:
+        return <MasterGisMap />;
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+      {/* Top Institutional Header */}
+      <Navbar />
+
+      {/* Streamlined Core Module Navigation Bar */}
+      <ModuleNav />
+
+      {/* Real-Time KPIs Stats Bar */}
+      <StatsTicker />
+
+      {/* Main Module Content */}
+      <div className="flex-1 w-full bg-slate-50">
+        {renderActiveModule()}
+      </div>
+
+      {/* Slide-over Project Dossier Drawer */}
+      <ProjectDrawer />
+
+      {/* Citizen Grievance Modal */}
+      <CitizenReportingModal />
+
+      {/* AI Assistant Drawer */}
+      <AiAssistantDrawer />
+
+      {/* Emergency Directory Modal */}
+      {isEmergencyModalOpen && (
+        <div id="emergency-modal-backdrop">
+          <EmergencyContactsModal
+            isOpen={isEmergencyModalOpen}
+            onClose={() => setIsEmergencyModalOpen(false)}
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      )}
+
+      {/* Institutional Civic Footer */}
+      <footer className="bg-[#0f2b48] text-white py-10 px-4 sm:px-6 lg:px-8 mt-auto border-t border-slate-700">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-3.5 text-center md:text-left">
+            <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-amber-400 font-bold">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-100 text-sm sm:text-base">
+                {t.platformName}
+              </p>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Chakan Development Forum (CDF) & MIDC Industries Transparency Initiative
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Footer Links */}
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
+            <button
+              onClick={() => setIsEmergencyModalOpen(true)}
+              className="text-amber-300 hover:text-amber-200 flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg border border-white/20 transition-colors"
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>{t.nav.emergencyHelp}</span>
+            </button>
+            <span className="text-slate-500">|</span>
+            <button
+              onClick={() => setActiveTab("updates")}
+              className="hover:text-amber-300 transition-colors text-slate-200"
+            >
+              {language === "mr" ? "दैनिक कामे व GR" : "Daily Updates & Circulars"}
+            </button>
+            <span className="text-slate-500">|</span>
+            <button
+              onClick={() => setActiveTab("projects")}
+              className="hover:text-amber-300 transition-colors text-slate-200"
+            >
+              {language === "mr" ? "विकासकामे ट्रॅकर" : "Project Tracker"}
+            </button>
+            <span className="text-slate-500">|</span>
+            <button
+              onClick={() => setActiveTab("analytics")}
+              className="hover:text-amber-300 transition-colors text-slate-200"
+            >
+              {language === "mr" ? "पारदर्शकता अहवाल" : "War Room Analytics"}
+            </button>
+          </div>
         </div>
-      </main>
-    </div>
+
+        <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-800 text-center text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>
+            © 2026 Chakan Development Forum. Built for Infrastructure Transparency & Civic Accountability.
+          </span>
+          <span className="text-emerald-400 font-semibold">
+            Certified Non-Partisan & Open Civic Data Initiative
+          </span>
+        </div>
+      </footer>
+    </main>
   );
 }
