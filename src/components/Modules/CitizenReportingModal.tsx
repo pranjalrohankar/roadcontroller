@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useApp } from "@/context/AppContext";
 import { CitizenReportCategory, Authority } from "@/types";
 import {
@@ -8,147 +8,290 @@ import {
   MapPin,
   CheckCircle2,
   AlertTriangle,
-  UploadCloud,
   Send,
-  Building2,
-  Navigation,
-  Compass,
   Sparkles,
   ShieldCheck,
-  Layers,
+  LocateFixed,
+  Navigation,
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
-interface PredefinedHotspot {
-  id: string;
+interface NearbyZone {
   name: string;
   nameMr: string;
   roadName: string;
   authority: Authority;
-  coordinates: [number, number];
-  zone: string;
+  center: [number, number];
 }
 
-const chakanHotspots: PredefinedHotspot[] = [
+const jurisdictionZones: NearbyZone[] = [
+  // NHAI Corridors (NH-60 Spine)
   {
-    id: "manik-chowk",
-    name: "Manik Chowk & Chakan Talegaon Chowk (NH-60)",
-    nameMr: "माणिक चौक व चाकण तळेगाव चौक (NH-६०)",
+    name: "Chakan Central / Manik Chowk",
+    nameMr: "चाकण मध्यवर्ती / माणिक चौक",
     roadName: "NH-60 Pune-Nashik National Highway",
     authority: "NHAI",
-    coordinates: [18.7595, 73.8385],
-    zone: "Central Chakan Junction",
+    center: [18.7615, 73.8588],
   },
   {
-    id: "sh55-kharabwadi",
-    name: "Kharabwadi Phata to Sudumbre (SH-55)",
-    nameMr: "खराबवाडी फाटा ते सुदुंबरे (SH-५५)",
+    name: "Chimbali Phata Highway Corridor",
+    nameMr: "चिमबळी फाटा महामार्ग कॉरिडॉर",
+    roadName: "NH-60 High-Speed Corridor",
+    authority: "NHAI",
+    center: [18.7180, 73.8580],
+  },
+  {
+    name: "Alandi Phata & Moshi Flyover",
+    nameMr: "आळंदी फाटा व मोशी उड्डाणपूल",
+    roadName: "NH-60 Moshi Gateway",
+    authority: "NHAI",
+    center: [18.6850, 73.8550],
+  },
+  {
+    name: "Khed / Rajgurunagar & Manchar Sector",
+    nameMr: "खेड / राजगुरुनगर व मंचर पट्टा",
+    roadName: "NH-60 Northern Sector",
+    authority: "NHAI",
+    center: [18.8400, 73.8900],
+  },
+  // PWD Corridors (SH-55 & SH-112)
+  {
+    name: "Kharabwadi Phata - Sudumbre",
+    nameMr: "खराबवाडी फाटा ते सुदुंबरे",
     roadName: "SH-55 Chakan-Talegaon State Highway",
     authority: "PWD",
-    coordinates: [18.7512, 73.815],
-    zone: "Western Corridor",
+    center: [18.7512, 73.8150],
   },
   {
-    id: "midc-phase2-spine",
+    name: "Talegaon Dabhade Highway Link",
+    nameMr: "तळेगाव दाभाडे महामार्ग लिंक",
+    roadName: "SH-55 Western Gateway",
+    authority: "PWD",
+    center: [18.7380, 73.7150],
+  },
+  {
+    name: "Chakan - Shikrapur State Highway",
+    nameMr: "चाकण - शिक्रापूर राज्य महामार्ग",
+    roadName: "SH-112 Eastern State Highway",
+    authority: "PWD",
+    center: [18.7610, 73.8850],
+  },
+  {
+    name: "Shikrapur Junction & Pabal Feeder",
+    nameMr: "शिक्रापूर चौक व पाबळ फीडर",
+    roadName: "SH-112 / Nagar Road Link",
+    authority: "PWD",
+    center: [18.7200, 74.0500],
+  },
+  // MIDC Industrial Corridors
+  {
     name: "MIDC Phase 2 Spine Road (Mercedes & Mahindra)",
     nameMr: "एमआयडीसी फेज २ मुख्य रस्ता (मर्सिडीज व महिंद्रा)",
-    roadName: "Phase 2 Auto Cluster Spine Road",
+    roadName: "MIDC Phase 2 Industrial Spine",
     authority: "MIDC",
-    coordinates: [18.7752, 73.8012],
-    zone: "Industrial Cluster",
+    center: [18.7752, 73.8012],
   },
   {
-    id: "kuruli-ring-road",
+    name: "MIDC Phase 1 Kharabwadi Auto Cluster",
+    nameMr: "एमआयडीसी फेज १ खराबवाडी ऑटो क्लस्टर",
+    roadName: "MIDC Phase 1 Access Road (Bajaj Area)",
+    authority: "MIDC",
+    center: [18.7650, 73.8350],
+  },
+  {
+    name: "MIDC Phase 3 Mahalunge Corridor",
+    nameMr: "एमआयडीसी फेज ३ महाळुंगे कॉरिडॉर",
+    roadName: "MIDC Phase 3 Industrial Highway",
+    authority: "MIDC",
+    center: [18.7610, 73.8245],
+  },
+  {
+    name: "MIDC Phase 4 & Vasuli Industrial Ring",
+    nameMr: "एमआयडीसी फेज ४ व वासुली रिंग",
+    roadName: "MIDC Heavy Freight Link",
+    authority: "MIDC",
+    center: [18.7890, 73.7840],
+  },
+  // PMRDA Corridors
+  {
     name: "Kuruli - Nanekarwadi 4-Lane Ring Bypass",
     nameMr: "कुरुळी - नाणेकरवाडी ४-पदरी रिंग बायपास",
-    roadName: "PMRDA Outer Ring Bypass",
+    roadName: "PMRDA Outer Ring Bypass Road",
     authority: "PMRDA",
-    coordinates: [18.738, 73.845],
-    zone: "Ring Road Sector",
+    center: [18.7380, 73.8450],
   },
   {
-    id: "sara-city-link",
-    name: "Sara City & Medankarwadi Internal Link",
-    nameMr: "सारा सिटी व मेदनकरवाडी अंतर्गत पोहोच रस्ता",
-    roadName: "Medankarwadi Village Road",
+    name: "Moshi Ring Road Feeder & DP Link",
+    nameMr: "मोशी रिंग रोड फीडर व डीपी रस्ता",
+    roadName: "PMRDA DP Arterial Corridor",
+    authority: "PMRDA",
+    center: [18.7050, 73.8520],
+  },
+  // Gram Panchayat Corridors
+  {
+    name: "Sara City & Medankarwadi Township Link",
+    nameMr: "सारा सिटी व मेदनकरवाडी टाऊनशिप रस्ता",
+    roadName: "Medankarwadi Gram Panchayat Road",
     authority: "GramPanchayat",
-    coordinates: [18.749, 73.856],
-    zone: "Residential Township",
+    center: [18.7490, 73.8560],
   },
   {
-    id: "sh112-shikrapur",
-    name: "Chakan - Shikrapur Road SH-112 (Near HPCL)",
-    nameMr: "चाकण - शिक्रापूर रस्ता SH-११२ (HPCL जवळ)",
-    roadName: "SH-112 Chakan-Shikrapur State Highway",
-    authority: "PWD",
-    coordinates: [18.761, 73.864],
-    zone: "Eastern Highway",
-  },
-  {
-    id: "chimbali-phata",
-    name: "Chimbali Phata High-Speed Flyover Junction",
-    nameMr: "चिमबळी फाटा उड्डाणपूल चौक",
-    roadName: "NH-60 Chimbali Highway Junction",
-    authority: "NHAI",
-    coordinates: [18.718, 73.858],
-    zone: "Southern Highway Gate",
-  },
-  {
-    id: "midc-phase3-mahalunge",
-    name: "Mahalunge MIDC Phase 3 Auto Hub",
-    nameMr: "महाळुंगे एमआयडीसी फेज ३ ऑटो हब",
-    roadName: "MIDC Phase 3 Main Link",
-    authority: "MIDC",
-    coordinates: [18.761, 73.8245],
-    zone: "Auto Engineering Hub",
-  },
-  {
-    id: "bhosari-moshi-link",
-    name: "Moshi - Bhosari Toll Feeder Link",
-    nameMr: "मोशी - भोसरी टोल फीडर रस्ता",
-    roadName: "State Highway Moshi-Bhosari Gateway",
-    authority: "PWD",
-    coordinates: [18.705, 73.852],
-    zone: "Pimpri Gateway",
-  },
-  {
-    id: "kadachiwadi-gp",
-    name: "Kadachiwadi Rural Link Road",
-    nameMr: "कडाचीवाडी ग्रामपंचायत रस्ता",
-    roadName: "Gram Panchayat Rural Link",
+    name: "Kadachiwadi Rural Link",
+    nameMr: "कडाचीवाडी ग्रामीण पोहोच रस्ता",
+    roadName: "Kadachiwadi Gram Panchayat Link",
     authority: "GramPanchayat",
-    coordinates: [18.741, 73.868],
-    zone: "Rural Connector",
+    center: [18.7410, 73.8680],
+  },
+  {
+    name: "Nanekarwadi Village Internal Arterial",
+    nameMr: "नाणेकरवाडी गाव अंतर्गत रस्ता",
+    roadName: "Nanekarwadi Rural Connector",
+    authority: "GramPanchayat",
+    center: [18.7320, 73.8390],
   },
 ];
+
+function resolveLocationAndAuthority(lat: number, lng: number): {
+  landmark: string;
+  landmarkMr: string;
+  roadName: string;
+  authority: Authority;
+} {
+  let closest = jurisdictionZones[0];
+  let minDistance = Infinity;
+
+  for (const zone of jurisdictionZones) {
+    const dLat = lat - zone.center[0];
+    const dLng = lng - zone.center[1];
+    const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+    if (dist < minDistance) {
+      minDistance = dist;
+      closest = zone;
+    }
+  }
+
+  return {
+    landmark: `${closest.name} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+    landmarkMr: `${closest.nameMr} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+    roadName: closest.roadName,
+    authority: closest.authority,
+  };
+}
 
 export const CitizenReportingModal: React.FC = () => {
   const {
     isReportModalOpen,
     setIsReportModalOpen,
     addCitizenReport,
-    t,
     language,
   } = useApp();
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<CitizenReportCategory>("Potholes");
-  const [selectedHotspot, setSelectedHotspot] = useState<PredefinedHotspot>(chakanHotspots[0]);
-  const [customLocationName, setCustomLocationName] = useState("");
-  const [useCustomLocation, setUseCustomLocation] = useState(false);
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string>("");
+  const [coordinates, setCoordinates] = useState<[number, number]>([18.7600, 73.8450]);
+  const [fetchedMetadata, setFetchedMetadata] = useState<{
+    landmark: string;
+    landmarkMr: string;
+    roadName: string;
+    authority: Authority;
+  }>({
+    landmark: "Chakan Central / Manik Chowk (18.7600, 73.8450)",
+    landmarkMr: "चाकण मध्यवर्ती / माणिक चौक (18.7600, 73.8450)",
+    roadName: "NH-60 Pune-Nashik National Highway",
+    authority: "NHAI",
+  });
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Auto-derived values
-  const currentLandmark = useCustomLocation
-    ? customLocationName || "Custom Chakan Point"
-    : language === "mr"
-    ? selectedHotspot.nameMr
-    : selectedHotspot.name;
+  const miniMapContainerRef = useRef<HTMLDivElement>(null);
+  const miniMapInstanceRef = useRef<LeafletMap | null>(null);
+  const pinMarkerRef = useRef<LeafletMarker | null>(null);
 
-  const currentAuthority: Authority = selectedHotspot.authority;
-  const currentCoordinates = selectedHotspot.coordinates;
+  // Initialize interactive Leaflet map inside modal
+  useEffect(() => {
+    if (!isReportModalOpen) return;
+
+    let isMounted = true;
+    let timer: NodeJS.Timeout;
+
+    timer = setTimeout(() => {
+      if (!miniMapContainerRef.current) return;
+
+      import("leaflet").then((L) => {
+        if (!isMounted || !miniMapContainerRef.current) return;
+
+        // Clean up previous instance if any
+        if (miniMapInstanceRef.current) {
+          miniMapInstanceRef.current.remove();
+          miniMapInstanceRef.current = null;
+        }
+
+        const map = L.map(miniMapContainerRef.current, {
+          center: coordinates,
+          zoom: 13,
+          zoomControl: true,
+          attributionControl: false,
+        });
+
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+        }).addTo(map);
+
+        // Custom pulsing animated pin icon
+        const pinIcon = L.divIcon({
+          className: "custom-map-pin",
+          html: `
+            <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+              <div style="position: absolute; width: 28px; height: 28px; background: rgba(239, 68, 68, 0.4); border-radius: 50%; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+              <div style="background: #ef4444; color: white; width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold;">
+                📍
+              </div>
+            </div>
+          `,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+        });
+
+        const marker = L.marker(coordinates, { icon: pinIcon, draggable: true }).addTo(map);
+        pinMarkerRef.current = marker;
+        miniMapInstanceRef.current = map;
+
+        const updatePin = (lat: number, lng: number) => {
+          marker.setLatLng([lat, lng]);
+          setCoordinates([lat, lng]);
+          const resolved = resolveLocationAndAuthority(lat, lng);
+          setFetchedMetadata(resolved);
+        };
+
+        // On Click on Map -> Move Pin & Auto-Fetch Authority
+        map.on("click", (e: any) => {
+          updatePin(e.latlng.lat, e.latlng.lng);
+        });
+
+        // On Marker Drag -> Move Pin & Auto-Fetch Authority
+        marker.on("dragend", () => {
+          const pos = marker.getLatLng();
+          updatePin(pos.lat, pos.lng);
+        });
+
+        // Trigger resize for proper tile rendering in modal
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 200);
+      });
+    }, 100);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      if (miniMapInstanceRef.current) {
+        miniMapInstanceRef.current.remove();
+        miniMapInstanceRef.current = null;
+      }
+    };
+  }, [isReportModalOpen]);
 
   if (!isReportModalOpen) return null;
 
@@ -180,6 +323,17 @@ export const CitizenReportingModal: React.FC = () => {
     }
   };
 
+  const handleCenterChakan = () => {
+    if (miniMapInstanceRef.current && pinMarkerRef.current) {
+      const defaultCoord: [number, number] = [18.7600, 73.8450];
+      miniMapInstanceRef.current.setView(defaultCoord, 14);
+      pinMarkerRef.current.setLatLng(defaultCoord);
+      setCoordinates(defaultCoord);
+      const resolved = resolveLocationAndAuthority(defaultCoord[0], defaultCoord[1]);
+      setFetchedMetadata(resolved);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description) return;
@@ -191,13 +345,13 @@ export const CitizenReportingModal: React.FC = () => {
       categoryMr: categories.find((c) => c.key === category)?.labelMr || category,
       description,
       descriptionMr: description,
-      landmark: currentLandmark,
-      landmarkMr: currentLandmark,
-      coordinates: currentCoordinates,
+      landmark: language === "mr" ? fetchedMetadata.landmarkMr : fetchedMetadata.landmark,
+      landmarkMr: fetchedMetadata.landmarkMr,
+      coordinates,
       photoUrl: photoUrl || "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&w=1200&q=80",
       reportedBy: "Citizen Geotagged Reporter",
       status: "Reported",
-      assignedAuthority: currentAuthority,
+      assignedAuthority: fetchedMetadata.authority,
     });
 
     try {
@@ -232,8 +386,8 @@ export const CitizenReportingModal: React.FC = () => {
               </h3>
               <p className="text-xs text-slate-300">
                 {language === "mr"
-                  ? "नकाशावरून ठिकाण निवडा — संबंधित विभाग (Authority) स्वयंचलित कनेक्ट होईल"
-                  : "Pick location from GIS Map — target authority is auto-detected & dispatched"}
+                  ? "नकाशावर थेट क्लिक करून पिन करा — संबंधित विभाग व रस्ता आपोआप डिटेक्ट होईल"
+                  : "Click & pin anywhere directly on the map — location & authority are auto-fetched"}
               </p>
             </div>
           </div>
@@ -257,95 +411,72 @@ export const CitizenReportingModal: React.FC = () => {
             </h4>
             <p className="text-xs text-slate-600 max-w-md mx-auto">
               {language === "mr"
-                ? `आपली तक्रार ${currentAuthority} विभागाकडे GPS निर्देशांकांसह वर्ग करण्यात आली आहे.`
-                : `Your grievance has been auto-dispatched to ${currentAuthority} nodal engineering desk with verified GPS coordinates.`}
+                ? `आपली तक्रार नकाशावरील GPS निर्देशकांनुसार ${fetchedMetadata.authority} विभागाकडे वर्ग करण्यात आली आहे.`
+                : `Your grievance has been auto-dispatched to ${fetchedMetadata.authority} nodal engineering desk with verified map coordinates.`}
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 text-xs text-slate-800 max-h-[85vh] overflow-y-auto">
-            {/* STEP 1: SELECT ON MAP / LOCATION AUTO-DETECTOR */}
-            <div className="bg-slate-50 border-2 border-blue-200 rounded-2xl p-4 space-y-3">
+            {/* STEP 1: DIRECT INTERACTIVE MAP PIN PICKER */}
+            <div className="bg-slate-50 border-2 border-blue-300 rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <span className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-blue-700" />
+                  <MapPin className="w-4 h-4 text-rose-600" />
                   <span>
                     {language === "mr"
-                      ? "१. नकाशावरून ठिकाण निवडा (Select on Map):"
-                      : "1. Select Location on GIS Map (Auto-Detects Authority):"}
+                      ? "१. नकाशावर थेट क्लिक करून पिन करा (Direct Map Pin):"
+                      : "1. Click / Pin Directly on Map (Auto-Detects Authority):"}
                   </span>
                 </span>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Auto-Fetch Enabled
-                </span>
-              </div>
-
-              {/* Hotspot Dropdown & Grid */}
-              <div className="space-y-2">
-                <select
-                  value={selectedHotspot.id}
-                  onChange={(e) => {
-                    const found = chakanHotspots.find((h) => h.id === e.target.value);
-                    if (found) {
-                      setSelectedHotspot(found);
-                      setUseCustomLocation(false);
-                    }
-                  }}
-                  className="w-full bg-white border border-blue-300 rounded-xl p-2.5 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs shadow-2xs"
+                <button
+                  type="button"
+                  onClick={handleCenterChakan}
+                  className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg text-[10px] font-bold text-slate-700 flex items-center gap-1 shadow-2xs transition-colors"
                 >
-                  {chakanHotspots.map((h) => (
-                    <option key={h.id} value={h.id}>
-                      📍 {h.name} ➔ [{h.authority} Authority]
-                    </option>
-                  ))}
-                </select>
+                  <LocateFixed className="w-3 h-3 text-blue-700" />
+                  <span>Center Chakan</span>
+                </button>
+              </div>
 
-                {/* Quick Map Pins Strip */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  {chakanHotspots.slice(0, 5).map((h) => (
-                    <button
-                      key={h.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedHotspot(h);
-                        setUseCustomLocation(false);
-                      }}
-                      className={`px-2.5 py-1.5 rounded-lg border text-[10px] font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
-                        selectedHotspot.id === h.id
-                          ? "bg-blue-800 text-white border-blue-900 shadow-2xs scale-102"
-                          : "bg-white text-slate-700 hover:bg-slate-100 border-slate-300"
-                      }`}
-                    >
-                      <span>📍</span>
-                      <span className="truncate max-w-[130px]">{h.id.replace("-", " ")}</span>
-                    </button>
-                  ))}
+              {/* Map Canvas */}
+              <div className="relative rounded-xl overflow-hidden border-2 border-blue-400 shadow-sm">
+                <div
+                  ref={miniMapContainerRef}
+                  className="w-full h-52 bg-slate-200 z-10 cursor-crosshair"
+                />
+                <div className="absolute top-2 left-2 z-20 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow flex items-center gap-1">
+                  <span>👆 Tap anywhere on the map to place/move the pin</span>
                 </div>
               </div>
 
-              {/* AUTO-FETCHED AUTHORITY & GEO-COORDINATES SUMMARY CARD */}
-              <div className="bg-white p-3 rounded-xl border border-blue-300 shadow-xs space-y-2">
-                <div className="flex items-center justify-between">
+              {/* LIVE AUTO-FETCHED GIS METADATA CARD */}
+              <div className="bg-white p-3.5 rounded-xl border border-blue-300 shadow-xs space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    Auto-Fetched GIS Metadata:
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    Auto-Detected from Map Pin:
                   </span>
-                  <span className={`text-xs font-extrabold px-3 py-0.5 rounded-full border ${getAuthorityBadgeColor(currentAuthority)}`}>
-                    Target Authority: {currentAuthority}
+                  <span className={`text-xs font-extrabold px-3 py-1 rounded-full border shadow-2xs ${getAuthorityBadgeColor(fetchedMetadata.authority)}`}>
+                    Target Authority: {fetchedMetadata.authority}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] pt-1 border-t border-slate-100 font-medium text-slate-700">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] pt-2 border-t border-slate-100 font-medium text-slate-700">
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Corridor Network:</span>
-                    <span className="font-bold text-slate-900 truncate block">{selectedHotspot.roadName}</span>
+                    <span className="text-slate-500 text-[10px] block font-bold">Detected Landmark:</span>
+                    <span className="font-bold text-slate-900 truncate block">
+                      {language === "mr" ? fetchedMetadata.landmarkMr : fetchedMetadata.landmark}
+                    </span>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] block">GPS Geotag:</span>
-                    <span className="font-mono text-slate-800 text-[10px] block">{currentCoordinates[0].toFixed(4)}, {currentCoordinates[1].toFixed(4)}</span>
+                    <span className="text-slate-500 text-[10px] block font-bold">Road / Corridor Asset:</span>
+                    <span className="font-bold text-blue-900 truncate block">{fetchedMetadata.roadName}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Jurisdiction Zone:</span>
-                    <span className="font-bold text-blue-900 block">{selectedHotspot.zone}</span>
+                    <span className="text-slate-500 text-[10px] block font-bold">Pinned Coordinates:</span>
+                    <span className="font-mono text-slate-800 text-[10px] block font-bold">
+                      {coordinates[0].toFixed(5)}, {coordinates[1].toFixed(5)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -432,8 +563,8 @@ export const CitizenReportingModal: React.FC = () => {
                 <Send className="w-4 h-4" />
                 <span>
                   {language === "mr"
-                    ? `तक्रार ${currentAuthority} विभागाकडे दाखल करा`
-                    : `Submit Geotagged Grievance to ${currentAuthority} Desk`}
+                    ? `तक्रार ${fetchedMetadata.authority} विभागाकडे दाखल करा`
+                    : `Submit Geotagged Grievance to ${fetchedMetadata.authority} Desk`}
                 </span>
               </button>
             </div>
