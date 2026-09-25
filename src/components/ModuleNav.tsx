@@ -8,7 +8,6 @@ import {
   AlertTriangle,
   Newspaper,
   BarChart3,
-  Bot,
 } from "lucide-react";
 
 export const ModuleNav: React.FC = () => {
@@ -46,12 +45,6 @@ export const ModuleNav: React.FC = () => {
       label: language === "mr" ? "पारदर्शकता अहवाल (Analytics)" : "War Room Analytics",
       icon: BarChart3,
     },
-    {
-      id: "ai-assistant",
-      label: language === "mr" ? "चाकण AI सहाय्यक" : "Chakan Infra AI",
-      icon: Bot,
-      isAi: true,
-    },
   ];
 
   return (
@@ -69,11 +62,11 @@ export const ModuleNav: React.FC = () => {
                   isActive
                     ? "bg-[#0f2b48] text-white shadow-sm font-bold"
                     : "text-slate-700 hover:text-slate-950 hover:bg-white border border-transparent hover:border-slate-200"
-                } ${m.isAi && !isActive ? "text-indigo-900 bg-indigo-50/80 border border-indigo-200" : ""}`}
+                }`}
               >
                 <Icon
                   className={`w-4 h-4 ${
-                    isActive ? "text-amber-400" : m.isAi ? "text-indigo-600" : "text-slate-500"
+                    isActive ? "text-amber-400" : "text-slate-500"
                   }`}
                 />
                 <span>{m.label}</span>
