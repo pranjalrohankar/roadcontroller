@@ -11,10 +11,11 @@ import {
   ArrowRight,
   Phone,
   AlertTriangle,
+  PlusCircle,
 } from "lucide-react";
 
 export const RoadProgressTracker: React.FC = () => {
-  const { roadSegments, t, language, setFocusOnMapLocation, setActiveTab } = useApp();
+  const { roadSegments, t, language, setFocusOnMapLocation, setActiveTab, setIsReportModalOpen } = useApp();
   const [search, setSearch] = useState("");
   const [authorityFilter, setAuthorityFilter] = useState("ALL");
   const [colorFilter, setColorFilter] = useState("ALL");
@@ -88,14 +89,23 @@ export const RoadProgressTracker: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Route className="w-6 h-6 text-blue-800" />
-            <span>{t.roads.title}</span>
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1">
-            {t.roads.subtitle}
-          </p>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Route className="w-6 h-6 text-blue-800" />
+              <span>{t.roads.title}</span>
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">
+              {t.roads.subtitle}
+            </p>
+          </div>
+          <button
+            onClick={() => setIsReportModalOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-[#047857] hover:bg-[#065f46] text-white font-bold text-xs shadow flex items-center gap-2 self-start transition-all active:scale-95"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>{language === "mr" ? "नवीन तक्रार नोंदवा" : "Report New Issue"}</span>
+          </button>
         </div>
 
         {/* Filters */}

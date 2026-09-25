@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useApp } from "@/context/AppContext";
 import { CitizenReportCategory, Authority } from "@/types";
-import { initialRoadsData } from "@/data/roadsData";
 import {
   X,
   MapPin,
@@ -15,101 +14,200 @@ import {
   LocateFixed,
   Navigation,
   Crosshair,
-  Compass,
   Check,
-  Search,
   Loader2,
   Info,
-  Layers,
 } from "lucide-react";
 import confetti from "canvas-confetti";
-import type { Map as LeafletMap, Marker as LeafletMarker, CircleMarker as LeafletCircleMarker, LayerGroup as LeafletLayerGroup } from "leaflet";
+import type { Map as LeafletMap, Marker as LeafletMarker, CircleMarker as LeafletCircleMarker } from "leaflet";
 
-const landmarkPoints = [
-  { name: "Chakan Manik Chowk Hub", nameMr: "चाकण माणिक चौक केंद्र", coords: [18.7615, 73.8588] as [number, number], badge: "NHAI", color: "text-red-700 border-red-300 bg-red-50" },
-  { name: "Chakan ST Bus Stand", nameMr: "चाकण एसटी बसस्थानक", coords: [18.7590, 73.8570] as [number, number], badge: "NHAI", color: "text-red-700 border-red-300 bg-red-50" },
-  { name: "Ambethan Chowk", nameMr: "आंबेठाण चौक", coords: [18.7595, 73.8385] as [number, number], badge: "PWD", color: "text-emerald-700 border-emerald-300 bg-emerald-50" },
-  { name: "Kharabwadi Phata (MIDC Gate 1)", nameMr: "खराबवाडी फाटा (एमआयडीसी गेट १)", coords: [18.7554, 73.8152] as [number, number], badge: "PWD", color: "text-emerald-700 border-emerald-300 bg-emerald-50" },
-  { name: "MIDC Phase 2 (Mercedes & Mahindra Spine)", nameMr: "एमआयडीसी फेज २ (मर्सिडीज व महिंद्रा स्पाइन)", coords: [18.7752, 73.8012] as [number, number], badge: "MIDC", color: "text-orange-700 border-orange-300 bg-orange-50" },
-  { name: "MIDC Phase 1 Auto Cluster (Bajaj Area)", nameMr: "एमआयडीसी फेज १ ऑटो क्लस्टर (बजाज परिसर)", coords: [18.7650, 73.8350] as [number, number], badge: "MIDC", color: "text-orange-700 border-orange-300 bg-orange-50" },
-  { name: "Mahalunge Industrial Junction", nameMr: "महाळुंगे इंडस्ट्रियल जंक्शन", coords: [18.7610, 73.8245] as [number, number], badge: "MIDC", color: "text-orange-700 border-orange-300 bg-orange-50" },
-  { name: "Vasuli Phata & Logistics Hub", nameMr: "वासुली फाटा व लॉजिस्टिक्स हब", coords: [18.7890, 73.7840] as [number, number], badge: "MIDC", color: "text-orange-700 border-orange-300 bg-orange-50" },
-  { name: "Nighoje Industrial Sector", nameMr: "निघोजे इंडस्ट्रियल सेक्टर", coords: [18.7250, 73.8180] as [number, number], badge: "MIDC", color: "text-orange-700 border-orange-300 bg-orange-50" },
-  { name: "Talegaon MIDC Junction (SH-55)", nameMr: "तळेगाव एमआयडीसी चौक (SH-५५)", coords: [18.7380, 73.7150] as [number, number], badge: "PWD", color: "text-emerald-700 border-emerald-300 bg-emerald-50" },
-  { name: "Sudumbre Feeder Link", nameMr: "सुदुंबरे फीडर रस्ता", coords: [18.7420, 73.7250] as [number, number], badge: "PWD", color: "text-emerald-700 border-emerald-300 bg-emerald-50" },
-  { name: "Kuruli Ring Bypass Junction", nameMr: "कुरुळी रिंग बायपास चौक", coords: [18.7380, 73.8640] as [number, number], badge: "PMRDA", color: "text-blue-700 border-blue-300 bg-blue-50" },
-  { name: "Nanekarwadi Industrial Area", nameMr: "नाणेकरवाडी औद्योगिक परिसर", coords: [18.7320, 73.8390] as [number, number], badge: "PMRDA", color: "text-blue-700 border-blue-300 bg-blue-50" },
-  { name: "Sara City Mega Township", nameMr: "सारा सिटी टाऊनशिप", coords: [18.7485, 73.8490] as [number, number], badge: "GP", color: "text-purple-700 border-purple-300 bg-purple-50" },
-  { name: "Medankarwadi Township", nameMr: "मेदनकरवाडी परिसर", coords: [18.7490, 73.8560] as [number, number], badge: "GP", color: "text-purple-700 border-purple-300 bg-purple-50" },
-  { name: "Kadachiwadi Rural Link", nameMr: "कडाचीवाडी रस्ता", coords: [18.7410, 73.8680] as [number, number], badge: "GP", color: "text-purple-700 border-purple-300 bg-purple-50" },
-  { name: "Chimbali Phata (NH-60)", nameMr: "चिमबळी फाटा (NH-६०)", coords: [18.7180, 73.8580] as [number, number], badge: "NHAI", color: "text-red-700 border-red-300 bg-red-50" },
-  { name: "Moshi Gateway & Toll Plaza", nameMr: "मोशी प्रवेशद्वार व टोल नाका", coords: [18.6850, 73.8550] as [number, number], badge: "NHAI", color: "text-red-700 border-red-300 bg-red-50" },
-  { name: "Bhosari Industrial Border", nameMr: "भोसरी औद्योगिक सीमा", coords: [18.6300, 73.8480] as [number, number], badge: "NHAI", color: "text-red-700 border-red-300 bg-red-50" },
-  { name: "Rajgurunagar (Khed) ST Stand", nameMr: "राजगुरुनगर (खेड) बसस्थानक", coords: [18.8400, 73.8900] as [number, number], badge: "NHAI", color: "text-red-700 border-red-300 bg-red-50" },
-  { name: "Peth Ghat & Manchar Sector", nameMr: "पेठ घाट व मंचर पट्टा", coords: [18.9400, 73.9350] as [number, number], badge: "NHAI", color: "text-red-700 border-red-300 bg-red-50" },
-  { name: "Pabal Phata Junction (SH-55)", nameMr: "पाबळ फाटा चौक (SH-५५)", coords: [18.7650, 73.9450] as [number, number], badge: "PWD", color: "text-emerald-700 border-emerald-300 bg-emerald-50" },
-  { name: "Shikrapur Nagar Highway Junction", nameMr: "शिक्रापूर नगर महामार्ग चौक", coords: [18.7200, 74.0500] as [number, number], badge: "PWD", color: "text-emerald-700 border-emerald-300 bg-emerald-50" },
-  { name: "Alandi Devachi Pilgrim Link (SH-112)", nameMr: "आळंदी देवाची तीर्थक्षेत्र रस्ता (SH-११२)", coords: [18.6780, 73.8960] as [number, number], badge: "PWD", color: "text-emerald-700 border-emerald-300 bg-emerald-50" },
+interface NearbyZone {
+  name: string;
+  nameMr: string;
+  roadName: string;
+  authority: Authority;
+  center: [number, number];
+}
+
+const jurisdictionZones: NearbyZone[] = [
+  // NHAI Corridors (NH-60 Spine)
+  {
+    name: "Chakan Central / Manik Chowk",
+    nameMr: "चाकण मध्यवर्ती / माणिक चौक",
+    roadName: "NH-60 Pune-Nashik National Highway",
+    authority: "NHAI",
+    center: [18.7615, 73.8588],
+  },
+  {
+    name: "Chimbali Phata Highway Corridor",
+    nameMr: "चिमबळी फाटा महामार्ग कॉरिडॉर",
+    roadName: "NH-60 High-Speed Corridor",
+    authority: "NHAI",
+    center: [18.7180, 73.8580],
+  },
+  {
+    name: "Alandi Phata & Moshi Flyover",
+    nameMr: "आळंदी फाटा व मोशी उड्डाणपूल",
+    roadName: "NH-60 Moshi Gateway",
+    authority: "NHAI",
+    center: [18.6850, 73.8550],
+  },
+  {
+    name: "Bhosari - Moshi Toll Plaza Link",
+    nameMr: "भोसरी - मोशी टोल नाका लिंक",
+    roadName: "NH-60 Southern Gateway",
+    authority: "NHAI",
+    center: [18.6650, 73.8580],
+  },
+  {
+    name: "Khed / Rajgurunagar & Manchar Sector",
+    nameMr: "खेड / राजगुरुनगर व मंचर पट्टा",
+    roadName: "NH-60 Northern Sector",
+    authority: "NHAI",
+    center: [18.8400, 73.8900],
+  },
+  // PWD Corridors (SH-55 & SH-112)
+  {
+    name: "Kharabwadi Phata - Sudumbre",
+    nameMr: "खराबवाडी फाटा ते सुदुंबरे",
+    roadName: "SH-55 Chakan-Talegaon State Highway",
+    authority: "PWD",
+    center: [18.7512, 73.8150],
+  },
+  {
+    name: "Talegaon Dabhade Highway Link",
+    nameMr: "तळेगाव दाभाडे महामार्ग लिंक",
+    roadName: "SH-55 Western Gateway",
+    authority: "PWD",
+    center: [18.7380, 73.7150],
+  },
+  {
+    name: "Chakan - Shikrapur State Highway",
+    nameMr: "चाकण - शिक्रापूर राज्य महामार्ग",
+    roadName: "SH-112 Eastern State Highway",
+    authority: "PWD",
+    center: [18.7610, 73.8850],
+  },
+  {
+    name: "Shikrapur Junction & Pabal Feeder",
+    nameMr: "शिक्रापूर चौक व पाबळ फीडर",
+    roadName: "SH-112 / Nagar Road Link",
+    authority: "PWD",
+    center: [18.7200, 74.0500],
+  },
+  {
+    name: "Alandi - Chakan PWD Link Road",
+    nameMr: "आळंदी - चाकण पीडब्ल्यूडी लिंक रोड",
+    roadName: "SH PWD Feeder Corridor",
+    authority: "PWD",
+    center: [18.7100, 73.8750],
+  },
+  // MIDC Industrial Corridors
+  {
+    name: "MIDC Phase 2 Spine Road (Mercedes & Mahindra)",
+    nameMr: "एमआयडीसी फेज २ मुख्य रस्ता (मर्सिडीज व महिंद्रा)",
+    roadName: "MIDC Phase 2 Industrial Spine",
+    authority: "MIDC",
+    center: [18.7752, 73.8012],
+  },
+  {
+    name: "MIDC Phase 1 Kharabwadi Auto Cluster",
+    nameMr: "एमआयडीसी फेज १ खराबवाडी ऑटो क्लस्टर",
+    roadName: "MIDC Phase 1 Access Road (Bajaj Area)",
+    authority: "MIDC",
+    center: [18.7650, 73.8350],
+  },
+  {
+    name: "MIDC Phase 3 Mahalunge Corridor",
+    nameMr: "एमआयडीसी फेज ३ महाळुंगे कॉरिडॉर",
+    roadName: "MIDC Phase 3 Industrial Highway",
+    authority: "MIDC",
+    center: [18.7610, 73.8245],
+  },
+  {
+    name: "MIDC Phase 4 & Vasuli Industrial Ring",
+    nameMr: "एमआयडीसी फेज ४ व वासुली रिंग",
+    roadName: "MIDC Heavy Freight Link",
+    authority: "MIDC",
+    center: [18.7890, 73.7840],
+  },
+  {
+    name: "MIDC Khalumbre Freight Link",
+    nameMr: "एमआयडीसी खालुंब्रे अवजड वाहतूक मार्ग",
+    roadName: "MIDC Industrial Connector",
+    authority: "MIDC",
+    center: [18.7720, 73.8190],
+  },
+  // PMRDA Corridors
+  {
+    name: "Kuruli - Nanekarwadi 4-Lane Ring Bypass",
+    nameMr: "कुरुळी - नाणेकरवाडी ४-पदरी रिंग बायपास",
+    roadName: "PMRDA Outer Ring Bypass Road",
+    authority: "PMRDA",
+    center: [18.7380, 73.8450],
+  },
+  {
+    name: "Moshi Ring Road Feeder & DP Link",
+    nameMr: "मोशी रिंग रोड फीडर व डीपी रस्ता",
+    roadName: "PMRDA DP Arterial Corridor",
+    authority: "PMRDA",
+    center: [18.7050, 73.8520],
+  },
+  // Gram Panchayat Corridors
+  {
+    name: "Sara City & Medankarwadi Township Link",
+    nameMr: "सारा सिटी व मेदनकरवाडी टाऊनशिप रस्ता",
+    roadName: "Medankarwadi Gram Panchayat Road",
+    authority: "GramPanchayat",
+    center: [18.7490, 73.8560],
+  },
+  {
+    name: "Kadachiwadi Rural Link",
+    nameMr: "कडाचीवाडी ग्रामीण पोहोच रस्ता",
+    roadName: "Kadachiwadi Gram Panchayat Link",
+    authority: "GramPanchayat",
+    center: [18.7410, 73.8680],
+  },
+  {
+    name: "Nanekarwadi Village Internal Arterial",
+    nameMr: "नाणेकरवाडी गाव अंतर्गत रस्ता",
+    roadName: "Nanekarwadi Rural Connector",
+    authority: "GramPanchayat",
+    center: [18.7320, 73.8390],
+  },
+  {
+    name: "Nighoje Village - MIDC Link",
+    nameMr: "निघोजे गाव - एमआयडीसी लिंक रस्ता",
+    roadName: "Nighoje Gram Panchayat Road",
+    authority: "GramPanchayat",
+    center: [18.7250, 73.8180],
+  },
 ];
 
-// Distance from point (px, py) to line segment (x1, y1) -> (x2, y2)
-function distToSegmentSquared(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
-  const l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
-  if (l2 === 0) return (px - x1) * (px - x1) + (py - y1) * (py - y1);
-  let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
-  t = Math.max(0, Math.min(1, t));
-  const projX = x1 + t * (x2 - x1);
-  const projY = y1 + t * (y2 - y1);
-  return (px - projX) * (px - projX) + (py - projY) * (py - projY);
-}
-
-function getMinDistanceToRoad(lat: number, lng: number, coordinates: [number, number][]): number {
-  let minD2 = Infinity;
-  for (let i = 0; i < coordinates.length - 1; i++) {
-    const p1 = coordinates[i];
-    const p2 = coordinates[i + 1];
-    const d2 = distToSegmentSquared(lat, lng, p1[0], p1[1], p2[0], p2[1]);
-    if (d2 < minD2) minD2 = d2;
-  }
-  return Math.sqrt(minD2);
-}
-
-// Calculate the mathematically closest road segment from initialRoadsData
-function resolveRoadAndAuthority(lat: number, lng: number): {
+function resolveLocationAndAuthority(lat: number, lng: number): {
   landmark: string;
   landmarkMr: string;
   roadName: string;
   authority: Authority;
 } {
-  let closestRoad = initialRoadsData[0];
+  let closest = jurisdictionZones[0];
   let minDistance = Infinity;
 
-  for (const road of initialRoadsData) {
-    const dist = getMinDistanceToRoad(lat, lng, road.coordinates);
+  for (const zone of jurisdictionZones) {
+    const dLat = lat - zone.center[0];
+    const dLng = lng - zone.center[1];
+    const dist = Math.sqrt(dLat * dLat + dLng * dLng);
     if (dist < minDistance) {
       minDistance = dist;
-      closestRoad = road;
-    }
-  }
-
-  // Also find closest landmark point
-  let closestLandmark = landmarkPoints[0];
-  let minLmDist = Infinity;
-  for (const lm of landmarkPoints) {
-    const dLat = lat - lm.coords[0];
-    const dLng = lng - lm.coords[1];
-    const dist = Math.sqrt(dLat * dLat + dLng * dLng);
-    if (dist < minLmDist) {
-      minLmDist = dist;
-      closestLandmark = lm;
+      closest = zone;
     }
   }
 
   return {
-    landmark: `${closestLandmark.name} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-    landmarkMr: `${closestLandmark.nameMr} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-    roadName: `${closestRoad.name}`,
-    authority: closestRoad.authority,
+    landmark: `${closest.name} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+    landmarkMr: `${closest.nameMr} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+    roadName: closest.roadName,
+    authority: closest.authority,
   };
 }
 
@@ -128,8 +226,7 @@ export const CitizenReportingModal: React.FC = () => {
   const [coordinates, setCoordinates] = useState<[number, number]>([18.7615, 73.8588]);
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [gpsStatus, setGpsStatus] = useState<string | null>(null);
-  const [mapSearch, setMapSearch] = useState<string>("");
-  const [isManualOverride, setIsManualOverride] = useState<boolean>(false);
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
 
   const [fetchedMetadata, setFetchedMetadata] = useState<{
     landmark: string;
@@ -137,9 +234,9 @@ export const CitizenReportingModal: React.FC = () => {
     roadName: string;
     authority: Authority;
   }>({
-    landmark: "Chakan Manik Chowk Hub (18.7615, 73.8588)",
-    landmarkMr: "चाकण माणिक चौक केंद्र (18.7615, 73.8588)",
-    roadName: "NH-60: Chimbali Phata to Kuruli & Chakan Manik Chowk",
+    landmark: "Chakan Central / Manik Chowk (18.7615, 73.8588)",
+    landmarkMr: "चाकण मध्यवर्ती / माणिक चौक (18.7615, 73.8588)",
+    roadName: "NH-60 Pune-Nashik National Highway",
     authority: "NHAI",
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -148,17 +245,11 @@ export const CitizenReportingModal: React.FC = () => {
   const miniMapInstanceRef = useRef<LeafletMap | null>(null);
   const pinMarkerRef = useRef<LeafletMarker | null>(null);
   const haloMarkerRef = useRef<LeafletCircleMarker | null>(null);
-  const roadLayersRef = useRef<LeafletLayerGroup | null>(null);
 
-  // Mutable ref so Leaflet event listeners always invoke the latest function closure
-  const updateHandlerRef = useRef<(lat: number, lng: number, shouldFly: boolean) => void>(() => {});
-
-  // Function to update coordinates, pin position, halo, and resolve GIS road/authority
-  const updateLocationAndPin = (lat: number, lng: number, shouldFlyTo: boolean = false) => {
+  // Update pin position, halo, and auto-fetch metadata
+  const updatePinAndMetadata = (lat: number, lng: number, shouldFlyTo: boolean = false) => {
     setCoordinates([lat, lng]);
-    setIsManualOverride(false);
-
-    const resolved = resolveRoadAndAuthority(lat, lng);
+    const resolved = resolveLocationAndAuthority(lat, lng);
     setFetchedMetadata(resolved);
 
     if (pinMarkerRef.current) {
@@ -179,15 +270,30 @@ export const CitizenReportingModal: React.FC = () => {
     if (shouldFlyTo && miniMapInstanceRef.current) {
       miniMapInstanceRef.current.flyTo([lat, lng], 15, { duration: 0.8 });
     }
-  };
 
-  // Keep ref up to date on every render
-  useEffect(() => {
-    updateHandlerRef.current = updateLocationAndPin;
-  });
+    // Attempt reverse geocoding via OpenStreetMap Nominatim asynchronously (non-blocking)
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.display_name) {
+          const road = data.address?.road || data.address?.suburb || data.address?.neighbourhood;
+          const town = data.address?.town || data.address?.city || data.address?.village || "Chakan";
+          if (road) {
+            setFetchedMetadata((prev) => ({
+              ...prev,
+              landmark: `${road}, ${town} (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+            }));
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback to zone resolution already set
+      });
+  };
 
   // Live GPS geolocation handler
   const handleFetchCurrentGpsLocation = () => {
+    setIsMapPickerOpen(true);
     if (!navigator.geolocation) {
       setGpsStatus(
         language === "mr"
@@ -200,7 +306,7 @@ export const CitizenReportingModal: React.FC = () => {
     setIsLocating(true);
     setGpsStatus(
       language === "mr"
-        ? "उपग्रहाद्वारे थेट GPS शोधत आहे..."
+        ? "उपग्रहाद्वारे थेट GPS लोकेशन शोधत आहे..."
         : "Acquiring live satellite GPS coordinates..."
     );
 
@@ -211,18 +317,18 @@ export const CitizenReportingModal: React.FC = () => {
         setIsLocating(false);
         setGpsStatus(
           language === "mr"
-            ? `✓ थेट GPS लोकेशन: (${lat.toFixed(4)}, ${lng.toFixed(4)}) अचूकता: ±${Math.round(pos.coords.accuracy)}m`
+            ? `✓ GPS लोकेशन यशस्वी: (${lat.toFixed(4)}, ${lng.toFixed(4)}) अचूकता: ±${Math.round(pos.coords.accuracy)}m`
             : `✓ Live GPS Captured: (${lat.toFixed(4)}, ${lng.toFixed(4)}) Accuracy: ±${Math.round(pos.coords.accuracy)}m`
         );
-        updateLocationAndPin(lat, lng, true);
+        updatePinAndMetadata(lat, lng, true);
       },
       (err) => {
         setIsLocating(false);
         console.warn("GPS lookup error:", err);
         setGpsStatus(
           language === "mr"
-            ? "GPS परवानगी मिळालेली नाही. कृपया खालील नकाशावर कुठेही टॅप करून लाल पिन ठेवा."
-            : "GPS permission not granted. Please click directly anywhere on the map to place the pin."
+            ? "GPS परवानगी मिळालेली नाही. कृपया खालील नकाशावर थेट टॅप करून पिन ठेवा."
+            : "GPS permission not granted. Please click directly anywhere on the map to drop the pin."
         );
       },
       {
@@ -235,7 +341,7 @@ export const CitizenReportingModal: React.FC = () => {
 
   // Initialize interactive Leaflet map inside modal
   useEffect(() => {
-    if (!isReportModalOpen) return;
+    if (!isReportModalOpen || !isMapPickerOpen) return;
 
     let isMounted = true;
     let timer: NodeJS.Timeout;
@@ -254,54 +360,20 @@ export const CitizenReportingModal: React.FC = () => {
 
         const map = L.map(miniMapContainerRef.current, {
           center: coordinates,
-          zoom: 14,
+          zoom: 15,
           zoomControl: true,
           attributionControl: false,
         });
 
-        // OpenStreetMap free tile layer
-        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 19,
+        // Google Satellite Hybrid tile layer (same as Master GIS Map)
+        L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+          maxZoom: 20,
         }).addTo(map);
-
-        const roadLayerGroup = L.layerGroup().addTo(map);
-        roadLayersRef.current = roadLayerGroup;
-
-        // Render all 20 road networks on the modal map with their real colors
-        initialRoadsData.forEach((road) => {
-          let color = "#ef4444"; // NHAI
-          if (road.authority === "PWD") color = "#10b981";
-          if (road.authority === "MIDC") color = "#f97316";
-          if (road.authority === "PMRDA") color = "#3b82f6";
-          if (road.authority === "GramPanchayat") color = "#a855f7";
-
-          // Base halo
-          L.polyline(road.coordinates, {
-            color: "#ffffff",
-            weight: 7,
-            opacity: 0.9,
-            lineCap: "round",
-          }).addTo(roadLayerGroup);
-
-          const line = L.polyline(road.coordinates, {
-            color: color,
-            weight: 5,
-            opacity: 0.95,
-            lineCap: "round",
-          }).addTo(roadLayerGroup);
-
-          line.bindTooltip(`<b>${road.name}</b><br/>Authority: <b>${road.authority}</b>`, { sticky: true });
-
-          // Clicking directly on any road polyline moves pin to click position & auto-detects
-          line.on("click", (e: any) => {
-            updateHandlerRef.current(e.latlng.lat, e.latlng.lng, false);
-          });
-        });
 
         // High-visibility SVG Pin Icon with crisp drop shadow and bottom-center anchor
         const pinSvgHtml = `
           <div style="position: relative; width: 44px; height: 54px; display: flex; align-items: center; justify-content: center;">
-            <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 16px; height: 6px; background: rgba(0,0,0,0.45); border-radius: 50%; filter: blur(1.5px);"></div>
+            <div style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 16px; height: 6px; background: rgba(0,0,0,0.4); border-radius: 50%; filter: blur(1.5px);"></div>
             <svg width="40" height="50" viewBox="0 0 40 50" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));">
               <path d="M20 0C8.954 0 0 8.954 0 20C0 35 20 50 20 50C20 50 40 35 40 20C40 8.954 31.046 0 20 0Z" fill="#DC2626" stroke="#FFFFFF" stroke-width="2.5"/>
               <circle cx="20" cy="19" r="8" fill="#FFFFFF"/>
@@ -351,13 +423,13 @@ export const CitizenReportingModal: React.FC = () => {
 
         // When user clicks anywhere on map -> Immediately move pin & auto-fetch location & authority!
         map.on("click", (e: any) => {
-          updateHandlerRef.current(e.latlng.lat, e.latlng.lng, false);
+          updatePinAndMetadata(e.latlng.lat, e.latlng.lng, false);
         });
 
         // When marker is dragged -> Auto-update location & authority!
         marker.on("dragend", () => {
           const pos = marker.getLatLng();
-          updateHandlerRef.current(pos.lat, pos.lng, false);
+          updatePinAndMetadata(pos.lat, pos.lng, false);
         });
 
         // Invalidate map size multiple times to ensure full canvas paint
@@ -375,7 +447,7 @@ export const CitizenReportingModal: React.FC = () => {
         miniMapInstanceRef.current = null;
       }
     };
-  }, [isReportModalOpen]);
+  }, [isReportModalOpen, isMapPickerOpen]);
 
   if (!isReportModalOpen) return null;
 
@@ -407,38 +479,6 @@ export const CitizenReportingModal: React.FC = () => {
     }
   };
 
-  const handleCenterPreset = (lat: number, lng: number) => {
-    updateLocationAndPin(lat, lng, true);
-  };
-
-  const handleSearchFilter = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!mapSearch.trim()) return;
-    const query = mapSearch.toLowerCase();
-    const match = landmarkPoints.find(
-      (z) =>
-        z.name.toLowerCase().includes(query) ||
-        z.nameMr.includes(query) ||
-        z.badge.toLowerCase().includes(query)
-    );
-    if (match) {
-      updateLocationAndPin(match.coords[0], match.coords[1], true);
-      setGpsStatus(`✓ Moved pin to: ${match.name}`);
-    } else {
-      const roadMatch = initialRoadsData.find(
-        (r) =>
-          r.name.toLowerCase().includes(query) ||
-          r.nameMr.includes(query) ||
-          r.authority.toLowerCase().includes(query)
-      );
-      if (roadMatch) {
-        updateLocationAndPin(roadMatch.coordinates[0][0], roadMatch.coordinates[0][1], true);
-        setGpsStatus(`✓ Moved pin to road: ${roadMatch.name}`);
-      } else {
-        setGpsStatus(`⚠️ No direct match for "${mapSearch}". Please click on the map to pin.`);
-      }
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -492,8 +532,8 @@ export const CitizenReportingModal: React.FC = () => {
               </h3>
               <p className="text-xs text-slate-300 mt-0.5">
                 {language === "mr"
-                  ? "नकाशावर कुठेही टॅप करा किंवा GPS वापरा — विभाग (Authority) व रस्ता आपोआप डिटेक्ट होईल"
-                  : "Click anywhere on the map or use Live GPS to auto-fetch the responsible road & authority"}
+                  ? "नकाशावर कुठेही टॅप करा किंवा GPS वापरा — विभाग (Authority) आपोआप डिटेक्ट होईल"
+                  : "Click anywhere on the map or use Live GPS to auto-fetch the responsible authority"}
               </p>
             </div>
           </div>
@@ -525,114 +565,148 @@ export const CitizenReportingModal: React.FC = () => {
           <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-xs text-slate-800 max-h-[82vh] overflow-y-auto">
             {/* STEP 1: INTERACTIVE MAP CANVAS WITH PIN & AUTO-FETCH CONTROLS */}
             <div className="bg-slate-50 border-2 border-blue-500 rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-xs">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <span className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
-                  <Crosshair className="w-4 h-4 text-rose-600 animate-spin" />
-                  <span>
-                    {language === "mr"
-                      ? "१. नकाशावर थेट क्लिक करून पिन ठेवा (Click to Pin 📍):"
-                      : "1. Click Map or Use GPS to Drop Pin 📍:"}
-                  </span>
+              {/* Section Label */}
+              <span className="font-extrabold text-slate-900 text-sm flex items-center gap-1.5">
+                <Crosshair className="w-4 h-4 text-rose-600" />
+                <span>
+                  {language === "mr"
+                    ? "१. तक्रारीचे ठिकाण निवडा:"
+                    : "1. Select Issue Location:"}
                 </span>
+              </span>
 
-                {/* Primary Button: Detect Live GPS Location */}
+              {/* Two Location Mode Buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Live GPS Button */}
                 <button
                   type="button"
                   onClick={handleFetchCurrentGpsLocation}
                   disabled={isLocating}
-                  className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-75"
+                  className="p-3.5 rounded-xl border-2 border-blue-300 bg-blue-50 hover:bg-blue-100 text-center space-y-1.5 transition-all active:scale-[0.97] disabled:opacity-70 group"
                 >
-                  {isLocating ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>{language === "mr" ? "शोधत आहे..." : "Locating GPS..."}</span>
-                    </>
-                  ) : (
-                    <>
-                      <LocateFixed className="w-3.5 h-3.5 text-blue-200" />
-                      <span>{language === "mr" ? "माझे GPS लोकेशन मिळवा" : "Detect My Live GPS"}</span>
-                    </>
-                  )}
+                  <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center mx-auto shadow-md group-hover:scale-110 transition-transform">
+                    {isLocating ? (
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    ) : (
+                      <LocateFixed className="w-5 h-5 text-white" />
+                    )}
+                  </div>
+                  <span className="text-xs font-bold text-blue-900 block">
+                    {isLocating
+                      ? (language === "mr" ? "शोधत आहे..." : "Locating...")
+                      : (language === "mr" ? "📡 माझे GPS लोकेशन" : "📡 Use Live GPS")}
+                  </span>
+                  <span className="text-[10px] text-blue-700/80 block font-medium">
+                    {language === "mr" ? "आपोआप स्थान शोधते" : "Auto-detect your location"}
+                  </span>
+                </button>
+
+                {/* Select from Map Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsMapPickerOpen(true)}
+                  className={`p-3.5 rounded-xl border-2 text-center space-y-1.5 transition-all active:scale-[0.97] group ${
+                    isMapPickerOpen
+                      ? "border-emerald-500 bg-emerald-100 ring-2 ring-emerald-400"
+                      : "border-emerald-300 bg-emerald-50 hover:bg-emerald-100"
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center mx-auto shadow-md group-hover:scale-110 transition-transform">
+                    <Navigation className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-xs font-bold text-emerald-900 block">
+                    {language === "mr" ? "🗺️ नकाशावर निवडा" : "🗺️ Select from Map"}
+                  </span>
+                  <span className="text-[10px] text-emerald-700/80 block font-medium">
+                    {language === "mr" ? "नकाशावर पिन ठेवा" : "Tap map to drop pin"}
+                  </span>
                 </button>
               </div>
 
-              {/* Map Search & Quick Jump Presets */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder={
-                        language === "mr"
-                          ? "रस्ता किंवा परिसर शोधा (उदा. Manik Chowk, Phase 2, Mahalunge, Talegaon, Sara City)..."
-                          : "Search area to jump pin (e.g. Manik Chowk, MIDC Phase 2, Mahalunge, Talegaon, Sara City)..."
-                      }
-                      value={mapSearch}
-                      onChange={(e) => setMapSearch(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleSearchFilter(e);
-                        }
-                      }}
-                      className="w-full bg-white border border-slate-300 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 font-medium shadow-2xs"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleSearchFilter}
-                    className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-2xs"
-                  >
-                    {language === "mr" ? "जंप" : "Jump"}
-                  </button>
-                </div>
-
-                {/* Quick Area Preset Pills */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  <span className="text-[10px] font-bold text-slate-500 whitespace-nowrap">
-                    {language === "mr" ? "त्वरित हद्द:" : "Quick Corridors:"}
-                  </span>
-                  {landmarkPoints.slice(0, 10).map((preset, idx) => (
+              {isMapPickerOpen && (
+                <div className="fixed inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex flex-col animate-fade-in">
+                  {/* Fullscreen Map Header */}
+                  <div className="bg-[#0f2b48] text-white px-4 py-3 flex items-center justify-between flex-shrink-0 shadow-lg">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow">
+                        <MapPin className="w-4 h-4 text-white animate-bounce" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold leading-tight">
+                          {language === "mr" ? "नकाशावर ठिकाण निवडा" : "Select Location on Map"}
+                        </h4>
+                        <p className="text-[10px] text-slate-300">
+                          {language === "mr" ? "पिन हलवा किंवा नकाशावर टॅप करा" : "Drag pin or tap anywhere on map"}
+                        </p>
+                      </div>
+                    </div>
                     <button
-                      key={idx}
                       type="button"
-                      onClick={() => handleCenterPreset(preset.coords[0], preset.coords[1])}
-                      className={`px-2.5 py-0.5 rounded-lg border text-[10px] font-bold whitespace-nowrap transition-all hover:scale-105 shadow-2xs ${preset.color}`}
+                      onClick={() => setIsMapPickerOpen(false)}
+                      className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors"
                     >
-                      <span className="font-extrabold mr-1">[{preset.badge}]</span>
-                      <span>{preset.name}</span>
+                      <X className="w-4 h-4" />
                     </button>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              {/* Live GPS / Action Feedback Status Strip */}
-              {gpsStatus && (
-                <div className="p-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] font-medium flex items-center gap-1.5">
-                  <Info className="w-3.5 h-3.5 text-blue-700 flex-shrink-0" />
-                  <span className="truncate">{gpsStatus}</span>
+                  {/* GPS Status Strip (if active) */}
+                  {gpsStatus && (
+                    <div className="px-4 py-1.5 bg-blue-900/80 text-blue-100 text-[11px] font-medium flex items-center gap-1.5 flex-shrink-0">
+                      <Info className="w-3.5 h-3.5 text-blue-300 flex-shrink-0" />
+                      <span className="truncate">{gpsStatus}</span>
+                    </div>
+                  )}
+
+                  {/* Full-screen Map Canvas */}
+                  <div className="flex-1 relative">
+                    <div
+                      ref={miniMapContainerRef}
+                      className="w-full h-full bg-slate-300 cursor-crosshair"
+                    />
+
+                    {/* Top-left instruction badge */}
+                    <div className="absolute top-3 left-3 z-20 bg-slate-900/90 backdrop-blur-sm text-white text-[11px] font-bold px-3.5 py-2 rounded-xl shadow-lg flex items-center gap-2 border border-slate-600">
+                      <MapPin className="w-4 h-4 text-rose-400 animate-pulse" />
+                      <span>{language === "mr" ? "नकाशावर कुठेही क्लिक करा किंवा पिन ड्रॅग करा" : "Click anywhere or drag the pin 📍"}</span>
+                    </div>
+
+                    {/* Top-right coordinates badge */}
+                    <div className="absolute top-3 right-3 z-20 bg-white/95 backdrop-blur-sm text-slate-900 text-[11px] font-mono font-bold px-3 py-1.5 rounded-lg shadow-md border border-slate-300">
+                      📍 {coordinates[0].toFixed(5)}, {coordinates[1].toFixed(5)}
+                    </div>
+                  </div>
+
+                  {/* Bottom Bar: Live Authority Detection + Confirm */}
+                  <div className="bg-white border-t-2 border-emerald-500 px-4 py-3 flex-shrink-0 space-y-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.15)]">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                          <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                            {language === "mr" ? "ऑटो-डिटेक्ट:" : "Auto-Detected:"}
+                          </span>
+                          <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${getAuthorityBadgeColor(fetchedMetadata.authority)}`}>
+                            {fetchedMetadata.authority} ✓
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-slate-900 truncate">
+                          {language === "mr" ? fetchedMetadata.landmarkMr : fetchedMetadata.landmark}
+                        </p>
+                        <p className="text-[10px] text-blue-800 font-medium truncate">{fetchedMetadata.roadName}</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsMapPickerOpen(false)}
+                      className="w-full py-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.97]"
+                    >
+                      <Check className="w-5 h-5" />
+                      <span>{language === "mr" ? "✓ हे ठिकाण निश्चित करा" : "✓ Confirm This Location"}</span>
+                    </button>
+                  </div>
                 </div>
               )}
-
-              {/* Map Canvas with High Visibility Pin Indicator */}
-              <div className="relative rounded-xl overflow-hidden border-2 border-slate-400 shadow-md">
-                <div
-                  ref={miniMapContainerRef}
-                  className="w-full h-64 sm:h-72 bg-slate-200 cursor-crosshair z-10"
-                />
-
-                {/* Top overlay instructions banner */}
-                <div className="absolute top-2 left-2 z-20 bg-slate-900/90 backdrop-blur-xs text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-md flex items-center gap-1.5 border border-slate-700">
-                  <MapPin className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-                  <span>{language === "mr" ? "नकाशावर कुठेही क्लिक करून लाल पिन ठेवा" : "Click anywhere on map or roads to move Pin 📍"}</span>
-                </div>
-
-                {/* Bottom coordinates badge */}
-                <div className="absolute bottom-2 right-2 z-20 bg-white/95 backdrop-blur-xs text-slate-900 text-[10px] font-mono font-bold px-2.5 py-1 rounded-md shadow border border-slate-300">
-                  GPS: {coordinates[0].toFixed(5)}, {coordinates[1].toFixed(5)}
-                </div>
-              </div>
 
               {/* LIVE AUTO-FETCHED GIS METADATA CARD */}
               <div className="bg-white p-3.5 rounded-xl border-2 border-emerald-500 shadow-xs space-y-2">
@@ -643,7 +717,7 @@ export const CitizenReportingModal: React.FC = () => {
                   </span>
                   <div className="flex items-center gap-1.5">
                     <span className={`text-xs font-extrabold px-3 py-1 rounded-full border shadow-2xs ${getAuthorityBadgeColor(fetchedMetadata.authority)}`}>
-                      Target Authority: {fetchedMetadata.authority} ✓ {isManualOverride ? "(Manually Adjusted)" : ""}
+                      Target Authority: {fetchedMetadata.authority} ✓
                     </span>
                   </div>
                 </div>
@@ -674,13 +748,12 @@ export const CitizenReportingModal: React.FC = () => {
                   </span>
                   <select
                     value={fetchedMetadata.authority}
-                    onChange={(e) => {
-                      setIsManualOverride(true);
+                    onChange={(e) =>
                       setFetchedMetadata((prev) => ({
                         ...prev,
                         authority: e.target.value as Authority,
-                      }));
-                    }}
+                      }))
+                    }
                     className="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-600"
                   >
                     <option value="NHAI">NHAI (राष्ट्रीय महामार्ग - NH-60)</option>
