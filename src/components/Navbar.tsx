@@ -137,7 +137,6 @@ export const Navbar: React.FC = () => {
                       key={r.id}
                       onClick={() => {
                         setRole(r.id);
-                        setActiveTab("role-dashboard");
                         setIsRoleDropdownOpen(false);
                       }}
                       className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
