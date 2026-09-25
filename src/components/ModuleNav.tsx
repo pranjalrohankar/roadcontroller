@@ -9,10 +9,11 @@ import {
   Newspaper,
   BarChart3,
   Bot,
+  UserCheck,
 } from "lucide-react";
 
 export const ModuleNav: React.FC = () => {
-  const { activeTab, setActiveTab, t, projects, citizenReports, language } = useApp();
+  const { activeTab, setActiveTab, t, projects, citizenReports, language, role } = useApp();
 
   const activeReportsCount = citizenReports.filter((r) => r.status !== "Resolved").length;
 
@@ -22,6 +23,12 @@ export const ModuleNav: React.FC = () => {
       label: language === "mr" ? "नकाशा (Master GIS)" : "Master GIS Map",
       icon: Map,
       badge: "LIVE GIS",
+    },
+    {
+      id: "role-dashboard",
+      label: language === "mr" ? `रोल डॅशबोर्ड (${role.replace("Officer_", "")})` : `Role Workspace (${role.replace("Officer_", "")})`,
+      icon: UserCheck,
+      badge: "ACTIONS",
     },
     {
       id: "projects",
@@ -65,7 +72,7 @@ export const ModuleNav: React.FC = () => {
               <button
                 key={m.id}
                 onClick={() => setActiveTab(m.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all relative ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all relative ${
                   isActive
                     ? "bg-[#0f2b48] text-white shadow-sm font-bold"
                     : "text-slate-700 hover:text-slate-950 hover:bg-white border border-transparent hover:border-slate-200"
@@ -82,7 +89,11 @@ export const ModuleNav: React.FC = () => {
                 {m.badge && (
                   <span
                     className={`text-[9px] px-1.5 py-0.2 font-bold rounded ${
-                      m.badge === "NEW" ? "bg-amber-500 text-slate-900" : "bg-emerald-600 text-white"
+                      m.badge === "NEW"
+                        ? "bg-amber-500 text-slate-900"
+                        : m.badge === "ACTIONS"
+                        ? "bg-blue-600 text-white"
+                        : "bg-emerald-600 text-white"
                     }`}
                   >
                     {m.badge}

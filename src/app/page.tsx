@@ -10,6 +10,7 @@ import { ProjectDrawer } from "@/components/Map/ProjectDrawer";
 import { ProjectTracker } from "@/components/Modules/ProjectTracker";
 import { CitizenReportsFeed } from "@/components/Modules/CitizenReportsFeed";
 import { CitizenReportingModal } from "@/components/Modules/CitizenReportingModal";
+import { RoleBasedDashboard } from "@/components/Modules/RoleBasedDashboard";
 import { DailyUpdatesView } from "@/components/Modules/DailyUpdatesView";
 import { AnalyticsDashboard } from "@/components/Modules/AnalyticsDashboard";
 import { AiAssistantDrawer } from "@/components/Modules/AiAssistantDrawer";
@@ -24,6 +25,9 @@ export default function Home() {
     switch (activeTab) {
       case "master-gis":
         return <MasterGisMap />;
+      case "role-dashboard":
+      case "officer-portal":
+        return <RoleBasedDashboard />;
       case "projects":
         return <ProjectTracker />;
       case "citizen-reports":
